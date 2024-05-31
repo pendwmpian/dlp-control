@@ -66,13 +66,3 @@ sent_bytes = dev.write(1, payload, 100)
 # print(bytearray(ret))
 # time.sleep(0.1)
 
-# payload = b'\x00\x12\x03\x00\x1b\x1a\x02' #1A1B Video Pattern Mode
-# while len(payload) < 64: payload += b"\x00"
-# sent_bytes = dev.write(1, payload, 100)
-# payload = b'\xc0\x11\x02\x00\x1b\x1a'
-# while len(payload) < 64: payload += b"\x00"
-# sent_bytes = dev.write(1, payload, 100)
-# ret = dev.read(0x81, 64, 100)
-# print(bytearray(ret))
-# time.sleep(0.1)
-
