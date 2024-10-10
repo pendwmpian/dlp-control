@@ -28,7 +28,7 @@ def PatternDisplayLUTConf(nLUT, nDisPlay):
     """
     payload = b""
     payload += nLUT.to_bytes(2, 'little')
-    payload += nDisPlay.to_bytes(3, 'little')
+    payload += nDisPlay.to_bytes(4, 'little')
     dmd.usb_w(b"\x31\x1a", payload)
 
 def ImageHeader(nBytes, compression, width = 1920, height = 1080, bgColor: bytearray = b"\x00\x00\x00\x00"):
