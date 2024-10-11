@@ -38,7 +38,7 @@ class DMD:
         sent_bytes = -1
 
         while seek < len(data):
-            payload += data[max(0,seek):min(seek+64, len(data)-1)]
+            payload += data[max(0,seek):min(seek+64, len(data))]
             seek += 64
             while len(payload) < 64: payload += b"\x00"
             sent_bytes = self.dev.write(0x01, payload, 100)

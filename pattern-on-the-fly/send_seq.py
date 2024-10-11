@@ -42,7 +42,7 @@ class PatternOnTheFly(DMD):
         nBytes: number of bytes in the encoded image data
         compression: raw(0), Run-Length(1), Enhanced run-length(2)
         """
-        buf += b"\x53\x70\x6c\x64"
+        buf = b"\x53\x70\x6c\x64"
         buf += width.to_bytes(2, 'little')
         buf += height.to_bytes(2, 'little')
         buf += nBytes.to_bytes(4, 'little')
@@ -74,7 +74,7 @@ class PatternOnTheFly(DMD):
         ImagePatternIndex: Index of Image
         compression: no compression(0), RLE(1), Enhanced RLE(2)
         """
-        header = self._ImageHeader(self, len(imagedata), compression, width, height, bgColor)
+        header = self._ImageHeader(len(imagedata), compression, width, height, bgColor)
         self._PatternBMPLoad(ImagePatternIndex, header, imagedata)
 
     def DefinePattern(self, index, exposure, darktime, data: np.ndarray):
@@ -90,14 +90,14 @@ class PatternOnTheFly(DMD):
         if index >= 400: raise Exception("index must be < 400")
         ImagePatternIndex = index // 24
         BitPosition = index % 24
-        self.ImagePattern24bit[ImagePatternIndex, :, :] += data << BitPosition
+        self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
         self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition)
         self.index_map[index] = True
 
     def _checkIndex(self, nPattern):
         for i in range(nPattern):
             if self.index_map[i] is False:
-                raise Exception("Pattern index {i} is missing")
+                raise Exception('Pattern index ${i} is missing')
         return True
     
     def _EnhanceRLE(self, index):
