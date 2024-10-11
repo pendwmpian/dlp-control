@@ -1,8 +1,12 @@
 from usb_comm import DMD
+import numpy as np
+import math
 
 class PatternOnTheFly(DMD):
-    def __init__(self):
-        self.usb_w(b"\x1b\x1a", b"\x03") # Change to Pattern On-The-Fly mode
+    def __init__(self, h=1080, w=1920):
+        self.usb_w(b"\x1b\x1a", b"\x03")    # Change to Pattern On-The-Fly mode
+        self.ImagePattern24bit = np.zeros((18, h, w), dtype=np.uint32)
+        self.index_map = [False] * 400      # reset to False
 
     def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition):
         payload = b""
@@ -71,6 +75,46 @@ class PatternOnTheFly(DMD):
         """
         header = self._ImageHeader(self, len(imagedata), compression, width, height, bgColor)
         self._PatternBMPLoad(ImagePatternIndex, header, imagedata)
+
+    def DefinePattern(self, index, exposure, darktime, data: np.ndarray):
+        """
+        Register Pattern Images in 1-bit Bitmap format
+
+        index: order of the image in sequence
+        exposure: Pattern exposure time (us)
+        darktime: Dark display time following the exposure (us)
+        data: 1-bit BMP data in 2-d array (0: black, 1: white)
+        """
+
+        if index >= 400: raise Exception("index must be < 400")
+        ImagePatternIndex = index // 24
+        BitPosition = index % 24
+        self.ImagePattern24bit[ImagePatternIndex, :, :] += data << BitPosition
+        self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition)
+        self.index_map[index] = True
+
+    def _checkIndex(self, nPattern):
+        for i in range(nPattern):
+            if self.index_map[i] is False:
+                raise Exception("Pattern index {i} is missing")
+        return True
+    
+    def _EnhanceRLE(self, index):
+        # Under Construction; this code simply make uncompressed bytearray from ndarray
+        array = self.ImagePattern24bit[index, :, :].tobytes()
+        ret = bytearray(array[i] for i in range(len(array)) if i % 4 != 3)
+        return ret
+
+    def SendImageSequence(self, nPattern: int, nRepeat: int):
+        """
+        nPattern: number of Patterns
+        nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        """
+        if nPattern >= 400: raise Exception("nPattern must be < 400")
+        self._checkIndex(nPattern)
+        self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
+        for i in range(math.ceil(nPattern / 24)):
+            self._PatternImageLoad(i, 0, self._EnhanceRLE(i)) # 0 -> 2 if Enhanced RLE
 
     def StartRunning(self):
         self.usb_w(b"\x24\x1a", b"\x02")
