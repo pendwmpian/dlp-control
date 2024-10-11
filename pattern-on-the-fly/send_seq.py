@@ -4,6 +4,7 @@ import math
 
 class PatternOnTheFly(DMD):
     def __init__(self, h=1080, w=1920):
+        super().__init__()
         self.usb_w(b"\x1b\x1a", b"\x03")    # Change to Pattern On-The-Fly mode
         self.ImagePattern24bit = np.zeros((18, h, w), dtype=np.uint32)
         self.index_map = [False] * 400      # reset to False
