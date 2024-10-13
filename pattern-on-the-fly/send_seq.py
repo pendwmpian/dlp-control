@@ -1,4 +1,5 @@
 from usb_comm import DMD
+import enhanced_rle
 import numpy as np
 import math
 
@@ -101,9 +102,7 @@ class PatternOnTheFly(DMD):
         return True
     
     def _EnhanceRLE(self, index):
-        # Under Construction; this code simply make uncompressed bytearray from ndarray
-        array = self.ImagePattern24bit[index, :, :].tobytes()
-        ret = bytearray(array[i] for i in range(len(array)) if i % 4 != 3)
+        ret = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
         return ret
 
     def SendImageSequence(self, nPattern: int, nRepeat: int):
