@@ -102,8 +102,8 @@ class PatternOnTheFly(DMD):
         return True
     
     def _EnhanceRLE(self, index):
-        ret = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
-        return ret
+        array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
+        return array, 2 if (1920 * 1080 * 3 >= len(array)) else self.ImagePattern24bit[index, :, :].tobytes(), 0
 
     def SendImageSequence(self, nPattern: int, nRepeat: int):
         """
@@ -114,7 +114,8 @@ class PatternOnTheFly(DMD):
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in range(math.ceil(nPattern / 24)):
-            self._PatternImageLoad(i, 0, self._EnhanceRLE(i)) # 0 -> 2 if Enhanced RLE
+            imagedata, compression = self._EnhanceRLE(i)
+            self._PatternImageLoad(i, compression, imagedata)
 
     def StartRunning(self):
         self.usb_w(b"\x24\x1a", b"\x02")
