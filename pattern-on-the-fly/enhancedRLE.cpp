@@ -30,30 +30,30 @@ py::bytes ERLEencode(py::array_t<int32_t> input) {
                 mode[0] = 'r';
             }
             else {
-                std::vector<int> cost, u_;
-                std::vector<char> choice;
+                std::vector<int> cost(5, 1 << 30), u_(5, 0);
+                std::vector<char> choice(5);
                 // repeat
-                cost.push_back(dp[r[j] - 1] + ((j - r[j] > 127)? 5 : 4));
-                u_.push_back(0);
-                choice.push_back('r');
+                cost[0] = dp[r[j] - 1] + ((j - r[j] > 127)? 5 : 4);
+                u_[0] = 0;
+                choice[0] = 'r';
                 // copy
                 if (c[j] != -1) {
-                    cost.push_back(dp[c[j] - 1] + ((j - c[j] > 127)? 4 : 3));
-                    u_.push_back(0);
-                    choice.push_back('c');
+                    cost[1] = dp[c[j] - 1] + ((j - c[j] > 127)? 4 : 3);
+                    u_[1] = 0;
+                    choice[1] = 'c';
                 }
                 // uncompressed
                 for (int l = 1; l < 4; l++){
                     if(j - l < 0) break;
                     if(u[j - l] > 0){
-                        cost.push_back(dp[j - l] + 3 * l + ((u[j - l] >= 128 - l)? 1 : 0));
-                        u_.push_back(u[j - l] + l);
-                        choice.push_back('u');
+                        cost[l + 1] = dp[j - l] + 3 * l + ((u[j - l] >= 128 - l)? 1 : 0);
+                        u_[l + 1] = u[j - l] + l;
+                        choice[l + 1] = 'u';
                     } else {
                         if (l == 1) continue;
-                        cost.push_back(dp[j - l] + 3 * l + 2);
-                        u_.push_back(l);
-                        choice.push_back('u');
+                        cost[l + 1] = dp[j - l] + 3 * l + 2;
+                        u_[l + 1] = l;
+                        choice[l + 1] = 'u';
                     }
                 }
                 // dp update
@@ -172,7 +172,6 @@ py::array_t<int32_t> ERLEdecode(py::bytes input) {
                         seek++;
                     }
                     int buf = (uint8_t) encoded[seek] + ((int)(uint8_t) encoded[seek + 1] << 8) + ((int)(uint8_t) encoded[seek + 2] << 16);
-                    std::cout << buf << std::endl;
                     seek += 3;
                     for (int b = j; j < rep + b; j++){
                         *ret.mutable_data(i, j) = buf;
