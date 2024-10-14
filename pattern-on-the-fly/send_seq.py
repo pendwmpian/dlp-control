@@ -103,7 +103,7 @@ class PatternOnTheFly(DMD):
     
     def _EnhanceRLE(self, index):
         array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
-        return array, 2 if (1920 * 1080 * 3 >= len(array)) else self.ImagePattern24bit[index, :, :].tobytes(), 0
+        return (array, 2) if (1920 * 1080 * 3 >= len(array)) else (self.ImagePattern24bit[index, :, :].tobytes(), 0)
 
     def SendImageSequence(self, nPattern: int, nRepeat: int):
         """
