@@ -117,6 +117,32 @@ class PatternOnTheFly(DMD):
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
 
+    def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
+        """
+        Trigger indicates the start of each pattern in the sequence
+        (Trigger is High in Non-Inverted, Low in Inverted)
+        """
+        if RaisingEdgeTime < -20 or RaisingEdgeTime > 10000 or FallingEdgeTime < -20 or FallingEdgeTime > 10000:
+            return False
+        payload = b""
+        if InvertedTrigger is True:
+            payload += b"\x01"
+        else: payload += b"\x00"
+        payload += RaisingEdgeTime.to_bytes(2, 'little')
+        payload += FallingEdgeTime.to_bytes(2, 'little')
+        self.usb_w(b"\x1e\x1a", payload)
+
+    def EnableTrigIn2(self, InvertedTrigger=False):
+        """
+        Non-Inverted: Pattern started on rising edge stopped on falling edge
+        Inverted: Pattern started on falling edge stopped on rising edge
+        """
+        payload = b""
+        if InvertedTrigger is True:
+            payload += b"\x01"
+        else: payload += b"\x00"
+        self.usb_w(b"\x36\x1a", payload)
+
     def StartRunning(self):
         self.usb_w(b"\x24\x1a", b"\x02")
 
