@@ -12,11 +12,12 @@ class DMD:
         if self.dev is None:
             raise ValueError('Device not found')
 
-        if self.dev.is_kernel_driver_active(0):
-            try:
-                self.dev.detach_kernel_driver(0)
-            except usb.core.USBError as e:
-                sys.exit("Could not detach kernel driver: %s" % str(e))
+        if sys.platform == 'linux':
+            if self.dev.is_kernel_driver_active(0):
+                try:
+                    self.dev.detach_kernel_driver(0)
+                except usb.core.USBError as e:
+                    sys.exit("Could not detach kernel driver: %s" % str(e))
 
         # set the active configuration. With no arguments, the first
         # configuration will be the active one
