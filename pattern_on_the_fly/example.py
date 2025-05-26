@@ -9,7 +9,7 @@ def create_lattice_img(size, p):
                 img[i * p: min(size[0], (i + 1) * p), j * p: min(size[1], (j + 1) * p)] = 1 
     return img
 
-dmd = PatternOnTheFly()
+dmd = PatternOnTheFly(test=True)
 
 dmd.DefinePattern(0, 2000000, 0, create_lattice_img((1080, 1920), 50))
 dmd.DefinePattern(1, 2000000, 0, create_lattice_img((1080, 1920), 80))
