@@ -1,5 +1,5 @@
-from usb_comm import DMD
-import enhanced_rle
+from pattern_on_the_fly.usb_comm import DMD
+import pattern_on_the_fly.enhanced_rle as enhanced_rle
 import numpy as np
 import math
 

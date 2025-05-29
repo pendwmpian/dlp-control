@@ -1,4 +1,4 @@
-from send_seq import PatternOnTheFly
+from pattern_on_the_fly import PatternOnTheFly
 import numpy as np
 
 def create_lattice_img(size, p):
