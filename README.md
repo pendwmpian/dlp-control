@@ -8,12 +8,21 @@ This repository contains code for controlling Texas Instruments DLPC900(C) evalu
 pip install "git+https://github.com/pendwmpian/dlp-control"
 ```
 
+On Windows, the installation sometimes fails because of the directory exceeds the path length limit on Windows. If you fail, try the command below:
+
+```bash
+cd ~
+mkdir tmpbuild
+$env:TMPDIR="tmpbuild"
+pip install "git+https://github.com/pendwmpian/dlp-control"
+```
+
 ## Requirements
 
 - Python >= 3.7
 - C++ Compiler 
-+ __Windows__: MSVC 14.x or later (Visual Studio 2022 is recommended) with the Windows SDK.
-+ __Linux__: g++
+  + __Windows__: MSVC 14.x or later (Visual Studio 2022 is recommended) with the Windows SDK.
+  + __Linux__: g++
 
 ## How to use
 
