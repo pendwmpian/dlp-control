@@ -15,6 +15,7 @@ cd ~
 mkdir tmpbuild
 $env:TMPDIR="tmpbuild"
 pip install "git+https://github.com/pendwmpian/dlp-control"
+del tmpbuild
 ```
 
 ## Requirements
