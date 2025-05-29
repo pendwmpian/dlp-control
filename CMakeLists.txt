@@ -3,6 +3,7 @@ project(enhanced_rle VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 14) 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 
 add_subdirectory(pybind11)
 pybind11_add_module(enhanced_rle pattern_on_the_fly/enhancedRLE.cpp)
