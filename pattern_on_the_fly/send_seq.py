@@ -116,6 +116,7 @@ class PatternOnTheFly(DMD):
         for i in range(math.ceil(nPattern / 24)):
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
+        self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
 
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
