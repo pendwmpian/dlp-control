@@ -46,7 +46,7 @@ class DMD:
             seek += 64
             while len(payload) < 64: payload += b"\x00"
             if self.test is False:
-                sent_bytes = self.dev.write(0x01, payload, 100)
+                sent_bytes = self.dev.write(0x01, payload, 1000)
             payload = b""
         
         return sent_bytes
