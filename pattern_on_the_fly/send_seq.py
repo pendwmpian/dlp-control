@@ -113,7 +113,7 @@ class PatternOnTheFly(DMD):
         if nPattern >= 400: raise Exception("nPattern must be < 400")
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
-        for i in range(math.ceil(nPattern / 24)):
+        for i in reversed(range(math.ceil(nPattern / 24))):
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
         self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
