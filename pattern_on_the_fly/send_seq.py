@@ -123,6 +123,17 @@ class PatternOnTheFly(DMD):
             self._PatternImageLoad(i, compression, imagedata)
         self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
 
+    def CalcSizeOfImageSequence(self, nPattern: int):
+        """
+        (For Debug Use) Calculate the total size (bytes) of ImageSequence
+        nPattern: number of Patterns
+        """
+        total_size = 0
+        for i in reversed(range(math.ceil(nPattern / 24))):
+            imagedata, _ = self._EnhanceRLE(i)
+            total_size += len(imagedata)
+        return total_size
+
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
         Trigger indicates the start of each pattern in the sequence
