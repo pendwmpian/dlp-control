@@ -55,7 +55,8 @@ class DMD:
         pass
     
     def close(self):
-        usb.util.dispose_resources(self.dev)
+        if self.test is False:
+            usb.util.dispose_resources(self.dev)
 
     def __enter__(self):
         return self

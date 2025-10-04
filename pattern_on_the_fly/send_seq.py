@@ -89,6 +89,11 @@ class PatternOnTheFly(DMD):
         """
 
         if index >= 400: raise Exception("index must be < 400")
+        unique_vals = np.unique(data)
+        invalid_vals = unique_vals[~((unique_vals == 0) | (unique_vals == 1))]
+        if invalid_vals.size > 0:
+            raise ValueError(f"Pattern data (np.ndarray) must contain only 0s and 1s. Found invalid value(s): {list(invalid_vals)}")
+        
         ImagePatternIndex = index // 24
         BitPosition = index % 24
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
@@ -110,13 +115,24 @@ class PatternOnTheFly(DMD):
         nPattern: number of Patterns
         nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern >= 400: raise Exception("nPattern must be < 400")
+        if nPattern > 400: raise Exception("nPattern must be <= 400")
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
         self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
+
+    def CalcSizeOfImageSequence(self, nPattern: int):
+        """
+        (For Debug Use) Calculate the total size (bytes) of ImageSequence
+        nPattern: number of Patterns
+        """
+        total_size = 0
+        for i in reversed(range(math.ceil(nPattern / 24))):
+            imagedata, _ = self._EnhanceRLE(i)
+            total_size += len(imagedata)
+        return total_size
 
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
