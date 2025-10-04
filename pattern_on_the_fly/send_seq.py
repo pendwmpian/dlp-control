@@ -89,6 +89,11 @@ class PatternOnTheFly(DMD):
         """
 
         if index >= 400: raise Exception("index must be < 400")
+        unique_vals = np.unique(data)
+        invalid_vals = unique_vals[~((unique_vals == 0) | (unique_vals == 1))]
+        if invalid_vals.size > 0:
+            raise ValueError(f"Pattern data (np.ndarray) must contain only 0s and 1s. Found invalid value(s): {list(invalid_vals)}")
+        
         ImagePatternIndex = index // 24
         BitPosition = index % 24
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
