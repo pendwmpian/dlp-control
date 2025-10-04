@@ -110,7 +110,7 @@ class PatternOnTheFly(DMD):
         nPattern: number of Patterns
         nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern >= 400: raise Exception("nPattern must be < 400")
+        if nPattern > 400: raise Exception("nPattern must be <= 400")
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
