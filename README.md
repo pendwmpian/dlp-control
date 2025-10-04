@@ -29,28 +29,32 @@ del tmpbuild
 
 The core functions are provided by the PatternOnTheFly class.
 
-+ `__init__(self, h=1080, w=1920, test=False)`:
-    `h`: Height of the DMD in pixels.
-    `w`: Width of the DMD in pixels.
-    `test`: If True, USB packet transmission is skipped (useful for testing without a connected device).
++ `__init__(self, h=1080, w=1920, test=False)`:  
+    `h`: Height of the DMD in pixels.  
+    `w`: Width of the DMD in pixels.  
+    `test`: If True, USB packet transmission is skipped (useful for testing without a connected device).  
 
 + `DefinePattern(self, index, exposure, darktime, data: np.ndarray)`:
-    Register a Pattern Image in 1-bit Bitmap format.
-    `index`: Order of the image in sequence (0-indexed)
-    `exposure`: Pattern exposure time (us)
-    `darktime`: Dark display time following the exposure (us)
-    `data`: A 2D NumPy array representing the 1-bit bitmap (0 for black, 1 for white).
+    Register a Pattern Image in 1-bit Bitmap format.  
+    `index`: Order of the image in sequence (0-indexed)  
+    `exposure`: Pattern exposure time (us)  
+    `darktime`: Dark display time following the exposure (us)  
+    `data`: A 2D NumPy array representing the 1-bit bitmap (0 for black, 1 for white).  
+
++ `CalcSizeOfImageSequence(self, nPattern: int)`:
+    Calculate the total size (bytes) of ImageSequence  
+    `nPattern`: The total number of patterns in the sequence.  
 
 + `SendImageSequence(self, nPattern: int, nRepeat: int)`:
-    Sends the registered patterns to the DLPC900. This can take a significant amount of time (approximately 1 second to 1 minute / pattern).
-    `nPattern`: The total number of patterns in the sequence.
-    `nDisplay`: The number of times to repeat the entire sequence. If set to 0, the sequence will loop indefinitely.
+    Sends the registered patterns to the DLPC900. This can take a significant amount of time (approximately 1 second to 1 minute / pattern).  
+    `nPattern`: The total number of patterns in the sequence.  
+    `nDisplay`: The number of times to repeat the entire sequence. If set to 0, the sequence will loop indefinitely.  
 
 + `StartRunning()`:
-    Starts displaying the registered pattern sequence on the DMD.
+    Starts displaying the registered pattern sequence on the DMD.  
 
 + `StopRunning()`:
-    Stops displaying the pattern sequences.
+    Stops displaying the pattern sequences.  
 
 ## Example
 
