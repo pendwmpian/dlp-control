@@ -9,12 +9,13 @@ class PatternOnTheFly(DMD):
         self.usb_w(b"\x1b\x1a", b"\x03")    # Change to Pattern On-The-Fly mode
         self.ImagePattern24bit = np.zeros((18, h, w), dtype=np.uint32)
         self.index_map = [False] * 400      # reset to False
+        self.SetTriggerOnFirstPattern = False
 
-    def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition):
+    def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=False):
         payload = b""
         payload += index.to_bytes(2, 'little')
         payload += exposure.to_bytes(3, 'little')
-        payload += b"\x01"
+        payload += b"\x01" if TriggerRequirement is False else b"\x81"
         payload += darktime.to_bytes(3, 'little')
         payload += b"\x00"
         buf = (BitPosition << 11) + ImagePatternIndex
@@ -78,7 +79,7 @@ class PatternOnTheFly(DMD):
         header = self._ImageHeader(len(imagedata), compression, width, height, bgColor)
         self._PatternBMPLoad(ImagePatternIndex, header, imagedata)
 
-    def DefinePattern(self, index, exposure, darktime, data: np.ndarray):
+    def DefinePattern(self, index, exposure, darktime, data: np.ndarray, TrigIn1Requirement=False):
         """
         Register Pattern Images in 1-bit Bitmap format
 
@@ -86,6 +87,7 @@ class PatternOnTheFly(DMD):
         exposure: Pattern exposure time (us)
         darktime: Dark display time following the exposure (us)
         data: 1-bit BMP data in 2-d array (0: black, 1: white)
+        TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
         """
 
         if index >= 400: raise Exception("index must be < 400")
@@ -94,10 +96,13 @@ class PatternOnTheFly(DMD):
         if invalid_vals.size > 0:
             raise ValueError(f"Pattern data (np.ndarray) must contain only 0s and 1s. Found invalid value(s): {list(invalid_vals)}")
         
+        if index == 0 and self.SetTriggerOnFirstPattern is True:
+            TrigIn1Requirement = True  # Force Overwrite
+
         ImagePatternIndex = index // 24
         BitPosition = index % 24
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
-        self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition)
+        self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
         self.index_map[index] = True
 
     def _checkIndex(self, nPattern):
@@ -138,6 +143,11 @@ class PatternOnTheFly(DMD):
         """
         Trigger indicates the start of each pattern in the sequence
         (Trigger is High in Non-Inverted, Low in Inverted)
+        The Default Pulse Width is 20 us. 
+        Pulse Width = FallingEdgeTime - RaisingEdgeTime + 20 (us)
+
+        RaisingEdgeTime: Trigger output Raising Edge delay (us) (-20 ~ 20000)
+        FallingEdgeTime: Trigger output Falling Edge delay (us) (-20 ~ 20000)
         """
         if RaisingEdgeTime < -20 or RaisingEdgeTime > 10000 or FallingEdgeTime < -20 or FallingEdgeTime > 10000:
             return False
@@ -148,6 +158,25 @@ class PatternOnTheFly(DMD):
         payload += RaisingEdgeTime.to_bytes(2, 'little')
         payload += FallingEdgeTime.to_bytes(2, 'little')
         self.usb_w(b"\x1e\x1a", payload)
+
+    def EnableTrigIn1(self, Delay=105, InvertedTrigger=False, SetTriggerOnFirstPattern=True):
+        """
+        Delay: Trigger In 1 delay (us)
+        Non-Inverted: Pattern started on rising edge stopped on falling edge
+        Inverted: Pattern started on falling edge stopped on rising edge
+        SetTriggerOnFirstPattern: Set the trigger 1 requirement on the first pattern of the sequence
+        """
+        if SetTriggerOnFirstPattern is True:
+            self.SetTriggerOnFirstPattern = True
+        payload = b""
+        payload += Delay.to_bytes(2, 'little')
+        if InvertedTrigger is True:
+            payload += b"\x01"
+        else: payload += b"\x00"
+        self.usb_w(b"\x35\x1a", payload)
+
+    def DisableTrigIn1(self):
+        self.SetTriggerOnFirstPattern = False
 
     def EnableTrigIn2(self, InvertedTrigger=False):
         """
