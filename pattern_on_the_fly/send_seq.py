@@ -11,6 +11,7 @@ class PatternOnTheFly(DMD):
         self.index_map = [False] * 400      # reset to False
         self.exposures = [0] * 400
         self.darktimes = [0] * 400
+        self.firstPatterninPrevOrder = 0
         self.SetTriggerOnFirstPattern = False
 
     def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=False):
@@ -145,7 +146,9 @@ class PatternOnTheFly(DMD):
     
     def ReorderPattern(self, perm, nPattern: int, nRepeat: int, TrigIn1Requirement=False):
         """
-        perm: 
+        Reorder the Pattern sequence
+        
+        perm: reorder map (perm[0] = 7 means that the first pattern in the new seq will be the (7+1)-th pattern in the "original" seq)
         nPattern: number of Patterns
         nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
@@ -158,8 +161,10 @@ class PatternOnTheFly(DMD):
             TrigIn1Requirement = True  # Force Overwrite
 
         if TrigIn1Requirement:
-            self._PatternDisplayLUT1bit(0, self.exposures[0], self.darktimes[0], 0, 0, TriggerRequirement=False)
+            self._PatternDisplayLUT1bit(self.firstPatterninPrevOrder, self.exposures[self.firstPatterninPrevOrder], self.darktimes[self.firstPatterninPrevOrder], self.firstPatterninPrevOrder // 24, self.firstPatterninPrevOrder % 24, TriggerRequirement=False)
             self._PatternDisplayLUT1bit(perm[0], self.exposures[perm[0]], self.darktimes[perm[0]], perm[0] // 24, perm[0] % 24, TriggerRequirement=True)
+
+        self.firstPatterninPrevOrder = perm[0]
 
         nDisPlay = nPattern * nRepeat
 
@@ -171,9 +176,6 @@ class PatternOnTheFly(DMD):
         for new, old in enumerate(perm):
             payload += old.to_bytes(2, 'little')
         self.usb_w(b"\x32\x1a", payload)
-
-        self.exposures = [self.exposures[i] for i in perm]
-        self.darktimes = [self.darktimes[i] for i in perm]
 
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
