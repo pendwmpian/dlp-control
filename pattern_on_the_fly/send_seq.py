@@ -9,6 +9,8 @@ class PatternOnTheFly(DMD):
         self.usb_w(b"\x1b\x1a", b"\x03")    # Change to Pattern On-The-Fly mode
         self.ImagePattern24bit = np.zeros((18, h, w), dtype=np.uint32)
         self.index_map = [False] * 400      # reset to False
+        self.exposures = [0] * 400
+        self.darktimes = [0] * 400
         self.SetTriggerOnFirstPattern = False
 
     def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=False):
@@ -104,6 +106,8 @@ class PatternOnTheFly(DMD):
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
         self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
         self.index_map[index] = True
+        self.exposures[index] = exposure
+        self.darktimes[index] = darktime
 
     def _checkIndex(self, nPattern):
         for i in range(nPattern):
@@ -138,6 +142,38 @@ class PatternOnTheFly(DMD):
             imagedata, _ = self._EnhanceRLE(i)
             total_size += len(imagedata)
         return total_size
+    
+    def ReorderPattern(self, perm, nPattern: int, nRepeat: int, TrigIn1Requirement=False):
+        """
+        perm: 
+        nPattern: number of Patterns
+        nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
+        """
+
+        for old_idx in perm:
+            if self.index_map[old_idx] is False: raise Exception("index " + str(old_idx) + " is missing.")
+
+        if self.SetTriggerOnFirstPattern is True:
+            TrigIn1Requirement = True  # Force Overwrite
+
+        if TrigIn1Requirement:
+            self._PatternDisplayLUT1bit(0, self.exposures[0], self.darktimes[0], 0, 0, TriggerRequirement=False)
+            self._PatternDisplayLUT1bit(perm[0], self.exposures[perm[0]], self.darktimes[perm[0]], perm[0] // 24, perm[0] % 24, TriggerRequirement=True)
+
+        nDisPlay = nPattern * nRepeat
+
+        self._PatternDisplayLUTConf(nPattern, nDisPlay)
+
+        payload = b""
+        payload += nPattern.to_bytes(2, 'little')
+        payload += nDisPlay.to_bytes(4, 'little')
+        for new, old in enumerate(perm):
+            payload += old.to_bytes(2, 'little')
+        self.usb_w(b"\x32\x1a", payload)
+
+        self.exposures = [self.exposures[i] for i in perm]
+        self.darktimes = [self.darktimes[i] for i in perm]
 
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
