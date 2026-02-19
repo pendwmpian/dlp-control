@@ -41,6 +41,10 @@ The core functions are provided by the PatternOnTheFly class.
     `darktime`: Dark display time following the exposure (us)  
     `data`: A 2D NumPy array representing the 1-bit bitmap (0 for black, 1 for white).  
 
++ `UpdateExposureTime(self, index, exposure, darktime)`
+    Update the exposure time and dark time for the registered pattern.
+    Note: After updating, call SendImageSequence() to apply the changes.
+
 + `CalcSizeOfImageSequence(self, nPattern: int)`:
     Calculate the total size (bytes) of ImageSequence  
     `nPattern`: The total number of patterns in the sequence.  
