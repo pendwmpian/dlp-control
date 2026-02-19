@@ -11,6 +11,7 @@ class PatternOnTheFly(DMD):
         self.index_map = [False] * 400      # reset to False
         self.exposures = [0] * 400
         self.darktimes = [0] * 400
+        self.updatedPattern24bit = [False] * 9
         self.firstPatterninPrevOrder = 0
         self.SetTriggerOnFirstPattern = False
         self.DMD_height = h; self.DMD_width = w
@@ -108,6 +109,10 @@ class PatternOnTheFly(DMD):
         ImagePatternMask = ~(np.ones(shape=(self.DMD_height, self.DMD_width), dtype=np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8))
         self.ImagePattern24bit[ImagePatternIndex, :, :] &= ImagePatternMask
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
+        # When updating 24-bit images, especially odd-indexed ones, 
+        # the preceding 24-bit image likely needs to be updated afterward as well.
+        self.updatedPattern24bit[ImagePatternIndex // 2] = True 
+
         self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
         self.index_map[index] = True
         self.exposures[index] = exposure
@@ -134,8 +139,10 @@ class PatternOnTheFly(DMD):
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
+            if self.updatedPattern24bit[i // 2] is False: continue
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
+        self.updatedPattern24bit = [False] * 9
 
     def CalcSizeOfImageSequence(self, nPattern: int):
         """
