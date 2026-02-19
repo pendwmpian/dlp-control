@@ -113,19 +113,21 @@ class PatternOnTheFly(DMD):
     def _checkIndex(self, nPattern):
         for i in range(nPattern):
             if self.index_map[i] is False:
-                raise Exception('Pattern index ${i} is missing')
+                raise Exception('Pattern index ' + str(i) + ' is missing')
         return True
     
     def _EnhanceRLE(self, index):
         array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
         return (array, 2) if (1920 * 1080 * 3 >= len(array)) else (self.ImagePattern24bit[index, :, :].tobytes(), 0)
 
-    def SendImageSequence(self, nPattern: int, nRepeat: int):
+    def SendImageSequence(self, nPattern: int = None, nRepeat: int = 1):
         """
-        nPattern: number of Patterns
-        nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        nPattern: number of Patterns (If None, defaults to the maximum registered frame.)
+        nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern is None: nPattern = max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
+        elif nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern <= 0: raise Exception("nPattern must be > 0")
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
@@ -144,18 +146,27 @@ class PatternOnTheFly(DMD):
             total_size += len(imagedata)
         return total_size
     
-    def ReorderPattern(self, perm, nPattern: int, nRepeat: int, TrigIn1Requirement=False):
+    def ReorderSequence(self, perm, nPattern: int = None, nRepeat: int = 1, TrigIn1Requirement=False):
         """
         Reorder the Pattern sequence
-        
-        perm: reorder map (perm[0] = 7 means that the first pattern in the new seq will be the (7+1)-th pattern in the "original" seq)
-        nPattern: number of Patterns
+
+        perm: reorder map; perm[i] specifies the original index for the i-th element in the new sequence.
+        nPattern: number of Patterns (If None, defaults to the length of `perm`.)
         nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
+        
+        Notes:
+        This function uses absolute mapping. Each value in `perm` always refers 
+        to the 'original' sequence, regardless of any previous reordering 
+        operations. It does not perform a relative shift from the current state.
         """
 
+        if nPattern is None: nPattern = len(perm)
+        elif nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern <= 0: raise Exception("nPattern must be > 0")
+
         for old_idx in perm:
-            if self.index_map[old_idx] is False: raise Exception("index " + str(old_idx) + " is missing.")
+            if old_idx >= 400 or self.index_map[old_idx] is False: raise Exception("index " + str(old_idx) + " is missing.")
 
         if self.SetTriggerOnFirstPattern is True:
             TrigIn1Requirement = True  # Force Overwrite
