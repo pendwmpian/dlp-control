@@ -13,6 +13,7 @@ class PatternOnTheFly(DMD):
         self.darktimes = [0] * 400
         self.firstPatterninPrevOrder = 0
         self.SetTriggerOnFirstPattern = False
+        self.DMD_height = h; self.DMD_width = w
 
     def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=False):
         payload = b""
@@ -104,6 +105,8 @@ class PatternOnTheFly(DMD):
 
         ImagePatternIndex = index // 24
         BitPosition = index % 24
+        ImagePatternMask = ~(np.ones(shape=(self.DMD_height, self.DMD_width), dtype=np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8))
+        self.ImagePattern24bit[ImagePatternIndex, :, :] &= ImagePatternMask
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
         self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
         self.index_map[index] = True
@@ -133,7 +136,6 @@ class PatternOnTheFly(DMD):
         for i in reversed(range(math.ceil(nPattern / 24))):
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
-        self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
 
     def CalcSizeOfImageSequence(self, nPattern: int):
         """
