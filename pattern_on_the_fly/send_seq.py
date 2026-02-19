@@ -161,7 +161,7 @@ class PatternOnTheFly(DMD):
 
         perm: reorder map; perm[i] specifies the original index for the i-th element in the new sequence.
         nPattern: number of Patterns (If None, defaults to the length of `perm`.)
-        nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
         
         Notes:
