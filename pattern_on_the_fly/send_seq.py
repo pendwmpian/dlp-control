@@ -9,7 +9,12 @@ class PatternOnTheFly(DMD):
         self.usb_w(b"\x1b\x1a", b"\x03")    # Change to Pattern On-The-Fly mode
         self.ImagePattern24bit = np.zeros((18, h, w), dtype=np.uint32)
         self.index_map = [False] * 400      # reset to False
+        self.exposures = [0] * 400
+        self.darktimes = [0] * 400
+        self.updatedPattern24bit = [False] * 9
+        self.firstPatterninPrevOrder = 0
         self.SetTriggerOnFirstPattern = False
+        self.DMD_height = h; self.DMD_width = w
 
     def _PatternDisplayLUT1bit(self, index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=False):
         payload = b""
@@ -101,32 +106,43 @@ class PatternOnTheFly(DMD):
 
         ImagePatternIndex = index // 24
         BitPosition = index % 24
+        ImagePatternMask = ~(np.ones(shape=(self.DMD_height, self.DMD_width), dtype=np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8))
+        self.ImagePattern24bit[ImagePatternIndex, :, :] &= ImagePatternMask
         self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
+        # When updating 24-bit images, especially odd-indexed ones, 
+        # the preceding 24-bit image likely needs to be updated afterward as well.
+        self.updatedPattern24bit[ImagePatternIndex // 2] = True 
+
         self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
         self.index_map[index] = True
+        self.exposures[index] = exposure
+        self.darktimes[index] = darktime
 
     def _checkIndex(self, nPattern):
         for i in range(nPattern):
             if self.index_map[i] is False:
-                raise Exception('Pattern index ${i} is missing')
+                raise Exception('Pattern index ' + str(i) + ' is missing')
         return True
     
     def _EnhanceRLE(self, index):
         array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
         return (array, 2) if (1920 * 1080 * 3 >= len(array)) else (self.ImagePattern24bit[index, :, :].tobytes(), 0)
 
-    def SendImageSequence(self, nPattern: int, nRepeat: int):
+    def SendImageSequence(self, nPattern: int = None, nRepeat: int = 1):
         """
-        nPattern: number of Patterns
-        nDisplay: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        nPattern: number of Patterns (If None, defaults to the maximum registered frame.)
+        nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern is None: nPattern = max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
+        elif nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern <= 0: raise Exception("nPattern must be > 0")
         self._checkIndex(nPattern)
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
+            if self.updatedPattern24bit[i // 2] is False: continue
             imagedata, compression = self._EnhanceRLE(i)
             self._PatternImageLoad(i, compression, imagedata)
-        self.ImagePattern24bit = np.zeros_like(self.ImagePattern24bit)
+        self.updatedPattern24bit = [False] * 9
 
     def CalcSizeOfImageSequence(self, nPattern: int):
         """
@@ -138,6 +154,68 @@ class PatternOnTheFly(DMD):
             imagedata, _ = self._EnhanceRLE(i)
             total_size += len(imagedata)
         return total_size
+    
+    def ReorderSequence(self, perm, nPattern: int = None, nRepeat: int = 1, TrigIn1Requirement=False):
+        """
+        Reorder the Pattern sequence
+
+        perm: reorder map; perm[i] specifies the original index for the i-th element in the new sequence.
+        nPattern: number of Patterns (If None, defaults to the length of `perm`.)
+        nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+        TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
+        
+        Notes:
+        This function uses absolute mapping. Each value in `perm` always refers 
+        to the 'original' sequence, regardless of any previous reordering 
+        operations. It does not perform a relative shift from the current state.
+        """
+
+        if nPattern is None: nPattern = len(perm)
+        elif nPattern > 400: raise Exception("nPattern must be <= 400")
+        if nPattern <= 0: raise Exception("nPattern must be > 0")
+
+        for old_idx in perm:
+            if old_idx >= 400 or self.index_map[old_idx] is False: raise Exception("index " + str(old_idx) + " is missing.")
+
+        if self.SetTriggerOnFirstPattern is True:
+            TrigIn1Requirement = True  # Force Overwrite
+
+        if TrigIn1Requirement:
+            self._PatternDisplayLUT1bit(self.firstPatterninPrevOrder, self.exposures[self.firstPatterninPrevOrder], self.darktimes[self.firstPatterninPrevOrder], self.firstPatterninPrevOrder // 24, self.firstPatterninPrevOrder % 24, TriggerRequirement=False)
+            self._PatternDisplayLUT1bit(perm[0], self.exposures[perm[0]], self.darktimes[perm[0]], perm[0] // 24, perm[0] % 24, TriggerRequirement=True)
+
+        self.firstPatterninPrevOrder = perm[0]
+
+        nDisPlay = nPattern * nRepeat
+
+        self._PatternDisplayLUTConf(nPattern, nDisPlay)
+
+        payload = b""
+        payload += nPattern.to_bytes(2, 'little')
+        payload += nDisPlay.to_bytes(4, 'little')
+        for new, old in enumerate(perm):
+            payload += old.to_bytes(2, 'little')
+        self.usb_w(b"\x32\x1a", payload)
+
+    def UpdateExposureTime(self, index, exposure, darktime, TrigIn1Requirement=False):
+        """
+        Update the exposure time and dark time of the registered pattern
+
+        index: order of the image in sequence
+        exposure: Pattern exposure time (us)
+        darktime: Dark display time following the exposure (us)
+        TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
+        """
+
+        if index >= 400: raise Exception("index must be < 400")
+        if self.index_map[index] is False: raise Exception('Pattern index ' + str(index) + ' is not registered')
+          
+        if index == 0 and self.SetTriggerOnFirstPattern is True:
+            TrigIn1Requirement = True  # Force Overwrite
+
+        ImagePatternIndex = index // 24
+        BitPosition = index % 24
+        self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
 
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
