@@ -41,9 +41,9 @@ The core functions are provided by the PatternOnTheFly class.
     `darktime`: Dark display time following the exposure (us)  
     `data`: A 2D NumPy array representing the 1-bit bitmap (0 for black, 1 for white).  
 
-+ `UpdateExposureTime(self, index, exposure, darktime)`
-    Update the exposure time and dark time for the registered pattern.
-    Note: After updating, call SendImageSequence() to apply the changes.
++ `UpdateExposureTime(self, index, exposure, darktime)`  
+    Update the exposure time and dark time for the registered pattern.  
+    Note: After updating, call SendImageSequence() to apply the changes.  
 
 + `CalcSizeOfImageSequence(self, nPattern: int)`:
     Calculate the total size (bytes) of ImageSequence  
@@ -55,16 +55,14 @@ The core functions are provided by the PatternOnTheFly class.
     `nDisplay`: The number of times to repeat the entire sequence. If set to 0, the sequence will loop indefinitely.  
 
 + `ReorderSequence(self, perm, nPattern: int, nRepeat: int)`:
-    Reorder the Pattern sequence.
+    Reorder the Pattern sequence.  
 
-    `perm`: reorder map; perm[i] specifies the original index for the i-th element in the new sequence.
-    `nPattern`: number of Patterns (If None, defaults to the length of `perm`.)
-    `nRepeat`: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+    `perm`: reorder map; `perm[i]` specifies the original index for the i-th element in the new sequence.  
+    `nPattern`: number of Patterns (If None, defaults to the length of `perm`.)  
+    `nRepeat`: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.  
     
-    Notes:
-    This function uses absolute mapping. Each value in `perm` always refers 
-    to the 'original' sequence, regardless of any previous reordering 
-    operations. It does not perform a relative shift from the current state.
+    Notes:  
+    This function uses absolute mapping. Each value in `perm` always refers to the 'original' sequence, regardless of any previous reordering operations. It does not perform a relative shift from the current state.  
 
 + `StartRunning()`:
     Starts displaying the registered pattern sequence on the DMD.  
