@@ -197,6 +197,26 @@ class PatternOnTheFly(DMD):
             payload += old.to_bytes(2, 'little')
         self.usb_w(b"\x32\x1a", payload)
 
+    def UpdateExposureTime(self, index, exposure, darktime, TrigIn1Requirement=False):
+        """
+        Update the exposure time and dark time of the registered pattern
+
+        index: order of the image in sequence
+        exposure: Pattern exposure time (us)
+        darktime: Dark display time following the exposure (us)
+        TrigIn1Requirement: Set the Trigger In 1 requirement for the initation of the pattern (the setting is overwritten by EnableTrigIn1() when the index is 0)
+        """
+
+        if index >= 400: raise Exception("index must be < 400")
+        if self.index_map[index] is False: raise Exception('Pattern index ' + str(index) + ' is not registered')
+          
+        if index == 0 and self.SetTriggerOnFirstPattern is True:
+            TrigIn1Requirement = True  # Force Overwrite
+
+        ImagePatternIndex = index // 24
+        BitPosition = index % 24
+        self._PatternDisplayLUT1bit(index, exposure, darktime, ImagePatternIndex, BitPosition, TriggerRequirement=TrigIn1Requirement)
+
     def EnableTrigOut2(self, InvertedTrigger=False, RaisingEdgeTime = 0, FallingEdgeTime = 0):
         """
         Trigger indicates the start of each pattern in the sequence
