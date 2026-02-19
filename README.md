@@ -50,13 +50,27 @@ The core functions are provided by the PatternOnTheFly class.
     `nPattern`: The total number of patterns in the sequence.  
     `nDisplay`: The number of times to repeat the entire sequence. If set to 0, the sequence will loop indefinitely.  
 
++ `ReorderSequence(self, perm, nPattern: int, nRepeat: int)`:
+    Reorder the Pattern sequence.
+
+    `perm`: reorder map; perm[i] specifies the original index for the i-th element in the new sequence.
+    `nPattern`: number of Patterns (If None, defaults to the length of `perm`.)
+    `nRepeat`: number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
+    
+    Notes:
+    This function uses absolute mapping. Each value in `perm` always refers 
+    to the 'original' sequence, regardless of any previous reordering 
+    operations. It does not perform a relative shift from the current state.
+
 + `StartRunning()`:
     Starts displaying the registered pattern sequence on the DMD.  
 
 + `StopRunning()`:
     Stops displaying the pattern sequences.  
 
-## Example
+## Examples
+
+### example.py
 
 ```python
 from pattern_on_the_fly import PatternOnTheFly
@@ -98,3 +112,63 @@ dmd.StartRunning()
 # dmd.StopRunning()
 ```
 
+### example2.py
+
+```python
+dmd = PatternOnTheFly()
+
+for i in range(100):
+    dmd.DefinePattern(i, 20000, 0, create_lattice_img((1080, 1920), 200 + i * 3))
+
+# Calling SendImageSequence without arguments displays the entire pattern sequence once.
+dmd.SendImageSequence()
+dmd.StartRunning()
+
+time.sleep(5)
+
+# Start displaying the patterns in reversed order
+dmd.ReorderSequence([99 - i for i in range(100)], nRepeat=1)
+dmd.StartRunning()
+
+time.sleep(5)
+
+# You can update individual patterns without re-sending the entire sequence.
+for i in range(40):
+    dmd.DefinePattern(i + 30, 20000, 0, np.ones((1080, 1920)))
+# After updating, call SendImageSequence() to apply the changes.
+dmd.SendImageSequence()
+dmd.StartRunning()
+
+time.sleep(5)
+
+# Exposure time and dark time can be updated without re-sending patterns.
+for i in range(100):
+    dmd.UpdateExposureTime(i, 80000, 20000)
+# After updating, call SendImageSequence() to apply the changes.
+# The sequence can be truncated to a shorter length (Example: display stops after the 80th pattern.)
+dmd.SendImageSequence(nPattern=80)
+dmd.StartRunning()
+```
+
+# example_trigger.py
+
+```python
+from pattern_on_the_fly import PatternOnTheFly
+import numpy as np
+
+dmd = PatternOnTheFly()
+
+# Enable Trigger 1 (1000 ms delay)
+dmd.EnableTrigIn1(Delay=1000)
+
+dmd.DefinePattern(0, 2000000, 0, np.ones((1080, 1920)))
+
+dmd.SendImageSequence(nRepeat=2)
+
+dmd.StartRunning()
+# Patterns will be displayed 1000 ms after the first hardware trigger is received following StartRunning().
+# If nRepeat > 1, the pattern sequence starts upon each trigger, repeating up to nRepeat times.
+
+# Disable Trigger 1 mode
+dmd.DisableTrigIn1()
+```
