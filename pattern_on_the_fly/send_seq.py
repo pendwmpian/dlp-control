@@ -137,6 +137,10 @@ class PatternOnTheFly(DMD):
         elif nPattern > 400: raise Exception("nPattern must be <= 400")
         if nPattern <= 0: raise Exception("nPattern must be > 0")
         self._checkIndex(nPattern)
+        if self.SetTriggerOnFirstPattern and self.firstPatterninPrevOrder != 0:
+            self._PatternDisplayLUT1bit(self.firstPatterninPrevOrder, self.exposures[self.firstPatterninPrevOrder], self.darktimes[self.firstPatterninPrevOrder], self.firstPatterninPrevOrder // 24, self.firstPatterninPrevOrder % 24, TriggerRequirement=False)
+            self._PatternDisplayLUT1bit(0, self.exposures[0], self.darktimes[0], 0, 0, TriggerRequirement=True)
+            self.firstPatterninPrevOrder = 0 
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
             if self.updatedPattern24bit[i // 2] is False: continue
