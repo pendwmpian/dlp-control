@@ -123,6 +123,9 @@ class PatternOnTheFly(DMD):
             if self.index_map[i] is False:
                 raise Exception('Pattern index ' + str(i) + ' is missing')
         return True
+
+    def _countValidPatterns(self):
+        return max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
     
     def _EnhanceRLE(self, index):
         array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
@@ -133,7 +136,7 @@ class PatternOnTheFly(DMD):
         nPattern: number of Patterns (If None, defaults to the maximum registered frame.)
         nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern is None: nPattern = max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
+        if nPattern is None: nPattern = self._countValidPatterns()
         elif nPattern > 400: raise Exception("nPattern must be <= 400")
         if nPattern <= 0: raise Exception("nPattern must be > 0")
         self._checkIndex(nPattern)
@@ -192,7 +195,7 @@ class PatternOnTheFly(DMD):
 
         nDisPlay = nPattern * nRepeat
 
-        self._PatternDisplayLUTConf(nPattern, nDisPlay)
+        self._PatternDisplayLUTConf(p:=self._countValidPatterns(), p)
 
         payload = b""
         payload += nPattern.to_bytes(2, 'little')
