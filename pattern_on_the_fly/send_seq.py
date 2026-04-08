@@ -123,6 +123,9 @@ class PatternOnTheFly(DMD):
             if self.index_map[i] is False:
                 raise Exception('Pattern index ' + str(i) + ' is missing')
         return True
+
+    def _countValidPatterns(self):
+        return max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
     
     def _EnhanceRLE(self, index):
         array = enhanced_rle.ERLEencode(self.ImagePattern24bit[index, :, :])
@@ -133,10 +136,14 @@ class PatternOnTheFly(DMD):
         nPattern: number of Patterns (If None, defaults to the maximum registered frame.)
         nRepeat:  number of Repeat. If this value is set to 0, the pattern sequences will be displayed indefinitely.
         """
-        if nPattern is None: nPattern = max([0] + [i + 1 for i,e in enumerate(self.index_map) if e is True])
+        if nPattern is None: nPattern = self._countValidPatterns()
         elif nPattern > 400: raise Exception("nPattern must be <= 400")
         if nPattern <= 0: raise Exception("nPattern must be > 0")
         self._checkIndex(nPattern)
+        if self.SetTriggerOnFirstPattern and self.firstPatterninPrevOrder != 0:
+            self._PatternDisplayLUT1bit(self.firstPatterninPrevOrder, self.exposures[self.firstPatterninPrevOrder], self.darktimes[self.firstPatterninPrevOrder], self.firstPatterninPrevOrder // 24, self.firstPatterninPrevOrder % 24, TriggerRequirement=False)
+            self._PatternDisplayLUT1bit(0, self.exposures[0], self.darktimes[0], 0, 0, TriggerRequirement=True)
+            self.firstPatterninPrevOrder = 0 
         self._PatternDisplayLUTConf(nPattern, nPattern * nRepeat)
         for i in reversed(range(math.ceil(nPattern / 24))):
             if self.updatedPattern24bit[i // 2] is False: continue
@@ -188,7 +195,7 @@ class PatternOnTheFly(DMD):
 
         nDisPlay = nPattern * nRepeat
 
-        self._PatternDisplayLUTConf(nPattern, nDisPlay)
+        self._PatternDisplayLUTConf(p:=self._countValidPatterns(), p)
 
         payload = b""
         payload += nPattern.to_bytes(2, 'little')
