@@ -33,12 +33,12 @@ py::bytes ERLEencode(py::array_t<int32_t> input) {
                 std::vector<int> cost(5, 1 << 30), u_(5, 0);
                 std::vector<char> choice(5);
                 // repeat
-                cost[0] = dp[r[j] - 1] + ((j - r[j] > 127)? 5 : 4);
+                cost[0] = (r[j] == 0 ? 0 : dp[r[j] - 1]) + ((j - r[j] > 127)? 5 : 4);
                 u_[0] = 0;
                 choice[0] = 'r';
                 // copy
                 if (c[j] != -1) {
-                    cost[1] = dp[c[j] - 1] + ((j - c[j] > 127)? 4 : 3);
+                    cost[1] = (c[j] == 0 ? 0 : dp[c[j] - 1]) + ((j - c[j] > 127)? 4 : 3);
                     u_[1] = 0;
                     choice[1] = 'c';
                 }
