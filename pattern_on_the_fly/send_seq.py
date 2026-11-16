@@ -117,7 +117,14 @@ class PatternOnTheFly(DMD):
         if fast_uint8:
             bit = np.uint32(bit)
             packed &= ~bit
-            packed |= np.multiply(data, bit, dtype=np.uint32)
+            if packed.dtype == np.uint32 and packed.flags.c_contiguous:
+                byte_offset = 2 - BitPosition // 8
+                if not np.little_endian:
+                    byte_offset = 3 - byte_offset
+                pixel_bytes = packed.view(np.uint8).reshape(*packed.shape, 4)
+                pixel_bytes[..., byte_offset] |= data * np.uint8(1 << (BitPosition % 8))
+            else:
+                packed |= np.multiply(data, bit, dtype=np.uint32)
         else:
             packed &= ~(np.ones(shape=shape, dtype=np.uint32) * bit)
             packed += data.astype(np.uint32) * bit
