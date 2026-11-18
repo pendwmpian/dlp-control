@@ -1,3 +1,4 @@
+#include <array>
 #include <string>
 #include <vector>
 #include <pybind11/pybind11.h>
@@ -30,8 +31,10 @@ py::bytes ERLEencode(py::array_t<int32_t> input) {
                 mode[0] = 'r';
             }
             else {
-                std::vector<int> cost(5, 1 << 30), u_(5, 0);
-                std::vector<char> choice(5);
+                std::array<int, 5> cost;
+                cost.fill(1 << 30);
+                std::array<int, 5> u_{};
+                std::array<char, 5> choice{};
                 // repeat
                 cost[0] = (r[j] == 0 ? 0 : dp[r[j] - 1]) + ((j - r[j] > 127)? 5 : 4);
                 u_[0] = 0;

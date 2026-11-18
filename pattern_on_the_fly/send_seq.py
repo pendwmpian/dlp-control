@@ -96,19 +96,38 @@ class PatternOnTheFly(DMD):
         """
 
         if index >= 400: raise Exception("index must be < 400")
-        unique_vals = np.unique(data)
-        invalid_vals = unique_vals[~((unique_vals == 0) | (unique_vals == 1))]
-        if invalid_vals.size > 0:
-            raise ValueError(f"Pattern data (np.ndarray) must contain only 0s and 1s. Found invalid value(s): {list(invalid_vals)}")
+        shape = (self.DMD_height, self.DMD_width)
+        fast_uint8 = (
+            type(data) is np.ndarray and data.dtype == np.uint8
+            and data.shape == shape and data.size > 0
+        )
+        if not fast_uint8 or data.max() > 1:
+            unique_vals = np.unique(data)
+            invalid_vals = unique_vals[~((unique_vals == 0) | (unique_vals == 1))]
+            if invalid_vals.size > 0:
+                raise ValueError(f"Pattern data (np.ndarray) must contain only 0s and 1s. Found invalid value(s): {list(invalid_vals)}")
         
         if index == 0 and self.SetTriggerOnFirstPattern is True:
             TrigIn1Requirement = True  # Force Overwrite
 
         ImagePatternIndex = index // 24
         BitPosition = index % 24
-        ImagePatternMask = ~(np.ones(shape=(self.DMD_height, self.DMD_width), dtype=np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8))
-        self.ImagePattern24bit[ImagePatternIndex, :, :] &= ImagePatternMask
-        self.ImagePattern24bit[ImagePatternIndex, :, :] += data.astype(np.uint32) * (1 << (2 - BitPosition // 8) * 8 + BitPosition % 8)
+        bit = 1 << ((2 - BitPosition // 8) * 8 + BitPosition % 8)
+        packed = self.ImagePattern24bit[ImagePatternIndex, :, :]
+        if fast_uint8:
+            bit = np.uint32(bit)
+            packed &= ~bit
+            if packed.dtype == np.uint32 and packed.flags.c_contiguous:
+                byte_offset = 2 - BitPosition // 8
+                if not np.little_endian:
+                    byte_offset = 3 - byte_offset
+                pixel_bytes = packed.view(np.uint8).reshape(*packed.shape, 4)
+                pixel_bytes[..., byte_offset] |= data * np.uint8(1 << (BitPosition % 8))
+            else:
+                packed |= np.multiply(data, bit, dtype=np.uint32)
+        else:
+            packed &= ~(np.ones(shape=shape, dtype=np.uint32) * bit)
+            packed += data.astype(np.uint32) * bit
         # When updating 24-bit images, especially odd-indexed ones, 
         # the preceding 24-bit image likely needs to be updated afterward as well.
         self.updatedPattern24bit[ImagePatternIndex // 2] = True 
